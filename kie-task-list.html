@@ -1,0 +1,235 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../neon-animation/web-animations.html">
+<link rel="import" href="../paper-listbox/paper-listbox.html">
+<link rel="import" href="../paper-item/paper-item.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../iron-collapse/iron-collapse.html">
+<link rel="import" href="../app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../kie-server-execute/kie-server-execute.html">
+
+
+<dom-module id="kie-task-list">
+  <template>
+    <style>
+      :host {
+        display: block;
+        font-family: Roboto, Noto, sans-serif;
+      }
+
+      #processTable {
+          border: 1px solid e6e6e6;
+      }
+
+      app-toolbar {
+        box-shadow: 0px 2px 3px 0px #000000;
+        background-color: #a6a6a6;
+        color: white;
+        padding: 0 0 0 16;
+      }
+
+      iron-list {
+        margin-top: 5px;
+      }
+
+      .col {
+          width: 25%;
+          padding-left: 3px;
+      }
+
+      .col_item {
+          display: inline-block;
+          padding: 10px 20px 0 10px;
+          width: 9%;
+      }
+
+      .row {
+          text-align:justify;
+          height: 100px;
+      }
+
+      .row:after {
+          display: inline-block;
+          width: 100%;
+          content: "";
+      }
+
+      .item_desc {
+        font-size: 15px;
+        color: #656565;
+      }
+
+      .item_val {
+          font-size: 20px;
+          margin: 15px 0 0 0;
+      }
+      
+      .wrapper {
+         border: 1px outset #e6e6e6;
+          margin-bottom: 5px;
+      }
+
+      .detail_info {
+          padding: 0 30px 5px 10px;
+          display: inline-block;
+      }
+
+    </style>
+    <kie-server-execute
+      id="getTaskInstances"
+      op="queries/tasks/instances"
+      username="spahuta"
+      password="qwe-rty123"
+      on-kieresponse="_setUpData">
+    </kie-server-execute>
+
+    <app-toolbar>
+        <paper-menu-button>
+            <paper-icon-button icon="menu" slot="dropdown-trigger"></paper-icon-button>
+            <paper-listbox slot="dropdown-content">
+                <paper-item class="menu_item">Sort</paper-item>
+                <paper-item class="menu_item">Refresh</paper-item>
+            </paper-listbox>
+        </paper-menu-button>
+        <div main-title>List of tasks</div>        
+        <paper-icon-button icon="refresh"></paper-icon-button>
+        <paper-icon-button icon="search"></paper-icon-button>
+    </app-toolbar>
+
+    <!--<iron-list items="[[processData]]">-->
+        <template is="dom-repeat" items="[[taskData]]">
+            <div class="wrapper">
+                <div class="row">
+
+                    <span class="col_item">
+                        <div class="item_desc">
+                            Task Name
+                        </div>
+                        <div class="item_val">
+                            [[item.task-name]]                            
+                        </div>
+                    </span>
+
+                    <span class="col_item">
+                        <div class="item_desc">
+                            Task Id
+                        </div>
+                        <div class="item_val">
+                            [[item.task-id]]
+                        </div>
+                    </span>
+
+                    <span class="col_item">
+                        <div class="item_desc">
+                            User
+                        </div>             
+                        <div class="item_val">           
+                            [[item.task-actual-owner]]
+                        </div>
+                    </span>
+                    <span class="col_item">
+                        <div class="item_desc">
+                            Status
+                        </div>
+                        <div class="item_val">                        
+                            [[item.task-status]]
+                        </div>
+                    </span>
+                    <span class="col_item">
+                        <div class="item_desc">
+                            Priority
+                        </div>
+                        <div class="item_val">                        
+                            [[item.task-priority]]
+                        </div>
+                    </span>
+                    <span class="col_item">
+                        <div class="item_desc">
+                            Details
+                        </div>
+                        <div class="item_val">                        
+                            <paper-icon-button icon="menu"  data-index$="[[index]]" on-click="_toggleInfo"></paper-icon-button>
+                        </div>
+                    </span>
+                </div>
+             
+                <iron-collapse id$="collapse[[index]]">
+                    <div class="detail_info">
+                        <span class="item_desc">Task activated:</span>
+                        <span>[[item.activated]]</span>
+                    </div>
+                    <div class="detail_info">
+                        <span class="item_desc">Task created:</span>
+                        <span>[[item.createdOn]]</span>
+                    </div>
+                    <div class="detail_info">
+                        <span class="item_desc">Created by:</span>
+                        <span>[[item.task-created-by]]</span>
+                    </div>
+                    <div class="detail_info">
+                        <span class="item_desc">Container Id:</span>
+                        <span>[[item.task-container-id]]</span>
+                    </div>
+                    <div class="detail_info">
+                        <span class="item_desc">Process definition id:</span>
+                        <span>[[item.task-proc-def-id]]</span>
+                    </div>
+                    <div class="detail_info">
+                        <span class="item_desc">Process instance id:</span>
+                        <span>[[item.task-proc-inst-id]]</span>
+                    </div>
+                </iron-collapse>
+            </div>
+        </template>
+    <!--</iron-list>-->
+  </template>
+
+  <script>
+    class KieTaskList extends Polymer.Element {
+        static get is() { return 'kie-task-list'; }
+
+        static get properties() {
+            return {
+                user: {
+                    type: Object
+                },
+                initiator: {
+                    type: String
+                },
+                taskData: {
+                    type: Array
+                }
+            }
+        }
+
+        ready() {
+            super.ready();
+
+            this._getTaskData();
+        }
+
+        _getTaskData() {
+            this.$.getTaskInstances.execute();
+        }
+
+        _setUpData(kieresponse) {
+            this.taskData = kieresponse.detail['task-summary'];
+            this.taskData.forEach(item => {
+                item.activated = new Date(item['task-activation-time']).toDateString();
+                item.createdOn = new Date(item['task-created-on']).toDateString();
+            });
+            console.info('Tasks: ',this.taskData);
+            console.info('kieresponse: ',kieresponse);
+        }
+        
+        _toggleInfo(e) {
+            var collapseElem = this.shadowRoot.querySelector('#collapse'+e.currentTarget.dataset.index);
+            collapseElem.toggle();
+        }
+    }
+
+    customElements.define(KieTaskList.is, KieTaskList);    
+  </script>
+
+</dom-module>
