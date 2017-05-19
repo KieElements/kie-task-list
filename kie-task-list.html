@@ -1,13 +1,22 @@
+<!--
+******* Author: Serhii Pahuta
+******* This code is a part of master's thesis: Polymer Elements for a Business Process Management System
+******* 2017 Brno
+-->
+
+
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../paper-menu-button/paper-menu-button.html">
 <link rel="import" href="../neon-animation/web-animations.html">
-<link rel="import" href="../paper-listbox/paper-listbox.html">
 <link rel="import" href="../paper-item/paper-item.html">
+<link rel="import" href="../paper-dialog/paper-dialog.html">
+<link rel="import" href="../paper-button/paper-button.html">
 <link rel="import" href="../iron-icons/iron-icons.html">
 <link rel="import" href="../iron-collapse/iron-collapse.html">
 <link rel="import" href="../app-layout/app-toolbar/app-toolbar.html">
 <link rel="import" href="../kie-server-execute/kie-server-execute.html">
+<link rel="import" href="../kie-form-complete-task/kie-form-complete-task.html">
 
 
 <dom-module id="kie-task-list">
@@ -78,27 +87,26 @@
     </style>
     <kie-server-execute
       id="getTaskInstances"
+      server-url={{serverUrl}}
       op="queries/tasks/instances"
-      username="spahuta"
-      password="qwe-rty123"
+      username="[[user.userId]]"
+      password="[[user.password]]"
       on-kieresponse="_setUpData">
     </kie-server-execute>
 
     <app-toolbar>
-        <paper-menu-button>
-            <paper-icon-button icon="menu" slot="dropdown-trigger"></paper-icon-button>
-            <paper-listbox slot="dropdown-content">
-                <paper-item class="menu_item">Sort</paper-item>
-                <paper-item class="menu_item">Refresh</paper-item>
-            </paper-listbox>
-        </paper-menu-button>
-        <div main-title>List of tasks</div>        
-        <paper-icon-button icon="refresh"></paper-icon-button>
-        <paper-icon-button icon="search"></paper-icon-button>
+        <div main-title>List of tasks</div>
+        <iron-collapse id='searchCollapse' horizontal=true>
+            <paper-input id='searchInput' autofocus=true label='Search' value="{{searchStr}}">
+                <iron-icon icon='clear' slot='suffix' on-click='_clearSearch'>
+            </paper-input>
+        </iron-collapse>        
+        <paper-icon-button icon="search" on-click='_toggleSearch'></paper-icon-button>
+        <paper-icon-button icon="refresh" on-click='refreshList'></paper-icon-button>
     </app-toolbar>
 
-    <!--<iron-list items="[[processData]]">-->
-        <template is="dom-repeat" items="[[taskData]]">
+        <span class="item_desc" hidden='[[!_listEmpty]]'>No data</span>
+        <template id='tList' is="dom-repeat" items="[[taskData]]" as="task" filter="{{_makeFilter(searchStr)}}">
             <div class="wrapper">
                 <div class="row">
 
@@ -107,7 +115,7 @@
                             Task Name
                         </div>
                         <div class="item_val">
-                            [[item.task-name]]                            
+                            [[task.task-name]]                            
                         </div>
                     </span>
 
@@ -116,7 +124,7 @@
                             Task Id
                         </div>
                         <div class="item_val">
-                            [[item.task-id]]
+                            [[task.task-id]]
                         </div>
                     </span>
 
@@ -125,7 +133,7 @@
                             User
                         </div>             
                         <div class="item_val">           
-                            [[item.task-actual-owner]]
+                            [[task.task-actual-owner]]
                         </div>
                     </span>
                     <span class="col_item">
@@ -133,7 +141,7 @@
                             Status
                         </div>
                         <div class="item_val">                        
-                            [[item.task-status]]
+                            [[task.task-status]]
                         </div>
                     </span>
                     <span class="col_item">
@@ -141,48 +149,63 @@
                             Priority
                         </div>
                         <div class="item_val">                        
-                            [[item.task-priority]]
+                            [[task.task-priority]]
                         </div>
                     </span>
                     <span class="col_item">
-                        <div class="item_desc">
-                            Details
-                        </div>
                         <div class="item_val">                        
-                            <paper-icon-button icon="menu"  data-index$="[[index]]" on-click="_toggleInfo"></paper-icon-button>
+                            <paper-menu-button id$='menu[[index]]' dynamic-align=true disabled='[[_checkStatus(task)]]'>
+                                <paper-icon-button icon="menu" slot="dropdown-trigger"></paper-icon-button>
+                                <div slot="dropdown-content">
+                                    <paper-item data-index$='[[index]]' class="menu_item" on-click='_act'>Complete task</paper-item>
+                                </div>
+                            </paper-menu-button>
+                            <paper-icon-button icon="arrow-back" data-index$="[[index]]" on-click="_toggleInfo">
                         </div>
                     </span>
+                    
                 </div>
              
                 <iron-collapse id$="collapse[[index]]">
                     <div class="detail_info">
                         <span class="item_desc">Task activated:</span>
-                        <span>[[item.activated]]</span>
+                        <span>[[task.activated]]</span>
                     </div>
                     <div class="detail_info">
                         <span class="item_desc">Task created:</span>
-                        <span>[[item.createdOn]]</span>
+                        <span>[[task.createdOn]]</span>
                     </div>
                     <div class="detail_info">
                         <span class="item_desc">Created by:</span>
-                        <span>[[item.task-created-by]]</span>
+                        <span>[[task.task-created-by]]</span>
                     </div>
                     <div class="detail_info">
                         <span class="item_desc">Container Id:</span>
-                        <span>[[item.task-container-id]]</span>
+                        <span>[[task.task-container-id]]</span>
                     </div>
                     <div class="detail_info">
                         <span class="item_desc">Process definition id:</span>
-                        <span>[[item.task-proc-def-id]]</span>
+                        <span>[[task.task-proc-def-id]]</span>
                     </div>
                     <div class="detail_info">
                         <span class="item_desc">Process instance id:</span>
-                        <span>[[item.task-proc-inst-id]]</span>
+                        <span>[[task.task-proc-inst-id]]</span>
                     </div>
                 </iron-collapse>
+
+                <paper-dialog id$="dialog[[index]]" modal on-submitted='_closeDialog'>
+                    <kie-form-complete-task no-init
+                    id$='getTaskForms[[index]]'
+                    user='[[user]]'
+                    container='[[task.task-container-id]]'
+                    task-id='[[task.task-id]]'
+                    on-submitted='refreshList'></kie-form-complete-task>
+                    <div class="buttons">
+                        <paper-button dialog-dismiss>Cancel</paper-button>
+                    </div>
+                 </paper-dialog>
             </div>
         </template>
-    <!--</iron-list>-->
   </template>
 
   <script>
@@ -194,11 +217,18 @@
                 user: {
                     type: Object
                 },
-                initiator: {
-                    type: String
-                },
                 taskData: {
                     type: Array
+                },
+                searchStr: {
+                    type: String
+                },
+                serverUrl: {
+                    type: String
+                },
+                _listEmpty: {
+                    type: Boolean,
+                    value: true
                 }
             }
         }
@@ -208,6 +238,12 @@
 
             this._getTaskData();
         }
+
+        refreshList() {
+            this._getTaskData();
+        }
+
+        //---- Private methods ----//
 
         _getTaskData() {
             this.$.getTaskInstances.execute();
@@ -219,13 +255,67 @@
                 item.activated = new Date(item['task-activation-time']).toDateString();
                 item.createdOn = new Date(item['task-created-on']).toDateString();
             });
-            console.info('Tasks: ',this.taskData);
-            console.info('kieresponse: ',kieresponse);
+            if(this.taskData.length > 0) this.set('_listEmpty',false);   
+            this.$.tList.render();
         }
         
         _toggleInfo(e) {
             var collapseElem = this.shadowRoot.querySelector('#collapse'+e.currentTarget.dataset.index);
             collapseElem.toggle();
+
+            if (collapseElem.opened) {
+                e.currentTarget.icon = 'arrow-downward';
+            }
+            else e.currentTarget.icon = 'arrow-back';
+        }
+
+        _emptyList() {
+            if (this.taskData.length === 0) return false
+            else return true;
+        }
+
+        _clearSearch() {
+            this.searchStr = '';
+        }
+
+        _toggleSearch(){
+            this.$.searchCollapse.toggle();
+        }
+
+        _checkStatus(task) {
+            if (task['task-status'] == 'Exited' || task['task-status'] == 'Completed') return true
+            else return false;
+        }
+
+        _makeFilter(str){
+            if (!str) return null;
+            else {
+                let q = str.toLowerCase();
+                return (task) => {
+                    let tId = `${task["task-id"]}`.toLowerCase();
+                    let tName = task['task-name'].toLowerCase();
+                    let tUser = task['task-actual-owner'].toLowerCase();
+                    return (tId.indexOf(q) != -1 || tName.indexOf(q) != -1 || tUser.indexOf(q) != -1);
+                }
+            }
+        }
+
+        _act(e) {
+            var taskIndex = e.currentTarget.dataset.index;
+            var menuElem = this.shadowRoot.querySelector('#menu'+taskIndex);
+            menuElem.close();
+            
+            this.shadowRoot.querySelector('#getTaskForms'+taskIndex).fetchTaskForms();
+            this._openCompleteTaskForm(taskIndex);
+        }
+
+        _openCompleteTaskForm(index) {
+            var dialogElem = this.shadowRoot.querySelector('#dialog'+index);
+            dialogElem.open();
+        }
+
+        _closeDialog(e) {
+            e.currentTarget.close();
         }
     }
 
