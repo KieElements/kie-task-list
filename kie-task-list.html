@@ -50,13 +50,13 @@
       .col_item {
           display: inline-block;
           padding: 10px 20px 0 10px;
-          width: 9%;
           vertical-align: top;
       }
 
       .row {
           text-align:justify;
           height: 100px;
+          cursor: pointer;
       }
 
       .row:after {
@@ -73,6 +73,7 @@
       .item_val {
           font-size: 20px;
           margin: 15px 0 0 0;
+          width: 200px;
       }
       
       .wrapper {
@@ -85,7 +86,7 @@
           display: inline-block;
       }
 
-      button_section {
+      .button_section {
           text-align: right;
       }
 
@@ -305,13 +306,25 @@
             }
         }
 
+        _fetchTaskForms(index) {
+            var self = this;
+            return new Promise((resolve, reject)=>{
+                self.shadowRoot.querySelector('#getTaskForms'+index).fetchTaskForms();
+                setTimeout(()=>{
+                    resolve();
+                },250);
+            });
+        }
+
         _act(e) {
             var taskIndex = e.currentTarget.dataset.index;
             var menuElem = this.shadowRoot.querySelector('#menu'+taskIndex);
             menuElem.close();
             
-            this.shadowRoot.querySelector('#getTaskForms'+taskIndex).fetchTaskForms();
-            this._openCompleteTaskForm(taskIndex);
+            this._fetchTaskForms(taskIndex)
+            .then(()=>{
+                this._openCompleteTaskForm(taskIndex);
+            })
         }
 
         _openCompleteTaskForm(index) {
